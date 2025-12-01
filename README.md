@@ -1,31 +1,35 @@
 # API Agent
 
-**API Agent** là một AI Assistant cho phép người dùng upload API specs, chuẩn hóa, định nghĩa scenarios, và tự động tạo Q&A Agent có khả năng gọi API real-time để trả lời người dùng.
+**API Agent** is an AI Assistant that allows users to upload API specs, normalize them, define scenarios, and automatically generate Q&A Agents capable of calling real-time APIs to answer user questions.
 
 ## Features
 
 ### 1. API Setup
-- Upload và parse OpenAPI 3.x specifications
-- Tự động phát hiện issues và missing descriptions
-- AI gợi ý cải thiện API documentation
-- Chat interface để refine API spec
+
+* Upload and parse OpenAPI 3.x specifications
+* Automatically detect issues and missing descriptions
+* AI suggestions for improving API documentation
+* Chat interface to refine the API spec
 
 ### 2. Scenario Setup
-- Định nghĩa Q&A scenarios
-- AI tự động gợi ý scenarios từ API semantics
-- Mapping entities → API parameters
-- Response templates với Jinja2
+
+* Define Q&A scenarios
+* AI automatically suggests scenarios from API semantics
+* Mapping entities → API parameters
+* Response templates using Jinja2
 
 ### 3. Agent Creation
-- Finalize và tạo Q&A Agent
-- Hỗ trợ multiple authentication methods
-- Mock API mode cho testing
+
+* Finalize and create Q&A Agent
+* Supports multiple authentication methods
+* Mock API mode for testing
 
 ### 4. Q&A Chat
-- Scenario matching với AI
-- Entity extraction từ câu hỏi
-- Real-time API execution
-- Template rendering cho responses
+
+* Scenario matching with AI
+* Entity extraction from user queries
+* Real-time API execution
+* Template rendering for responses
 
 ## Architecture
 
@@ -92,27 +96,31 @@ uvicorn api.routes:app --reload
 ## API Endpoints
 
 ### Sessions
-- `POST /sessions` - Create new session
-- `GET /sessions` - List sessions
-- `GET /sessions/{id}` - Get session details
+
+* `POST /sessions` - Create new session
+* `GET /sessions` - List sessions
+* `GET /sessions/{id}` - Get session details
 
 ### API Spec
-- `POST /sessions/{id}/api-spec` - Upload API spec
-- `GET /sessions/{id}/api-spec` - Get parsed API spec
-- `POST /sessions/{id}/api-spec/refine` - Refine with AI
+
+* `POST /sessions/{id}/api-spec` - Upload API spec
+* `GET /sessions/{id}/api-spec` - Get parsed API spec
+* `POST /sessions/{id}/api-spec/refine` - Refine with AI
 
 ### Scenarios
-- `GET /sessions/{id}/scenarios` - List scenarios
-- `POST /sessions/{id}/scenarios` - Create scenario
-- `POST /sessions/{id}/scenarios/suggest` - Get AI suggestions
-- `PUT /sessions/{id}/scenarios/{scenario_id}` - Update scenario
-- `DELETE /sessions/{id}/scenarios/{scenario_id}` - Delete scenario
+
+* `GET /sessions/{id}/scenarios` - List scenarios
+* `POST /sessions/{id}/scenarios` - Create scenario
+* `POST /sessions/{id}/scenarios/suggest` - Get AI suggestions
+* `PUT /sessions/{id}/scenarios/{scenario_id}` - Update scenario
+* `DELETE /sessions/{id}/scenarios/{scenario_id}` - Delete scenario
 
 ### Agents
-- `POST /sessions/{id}/finalize` - Create agent
-- `GET /agents` - List agents
-- `GET /agents/{id}` - Get agent details
-- `POST /agents/{id}/chat` - Chat with agent
+
+* `POST /sessions/{id}/finalize` - Create agent
+* `GET /agents` - List agents
+* `GET /agents/{id}` - Get agent details
+* `POST /agents/{id}/chat` - Chat with agent
 
 ## Example Workflow
 
@@ -154,7 +162,7 @@ scenario = {
             {"entity_name": "product_id", "api_parameter": "productId"}
         ]
     },
-    "response_template": "**{{ name }}**\n- Giá: {{ price | format_currency }}\n- Tồn kho: {{ stock }}"
+    "response_template": "**{{ name }}**\n- Price: {{ price | format_currency }}\n- Stock: {{ stock }}"
 }
 
 response = httpx.post(
@@ -192,18 +200,19 @@ Templates use Jinja2 syntax with custom filters:
 
 ```jinja2
 **{{ name }}**
-- Giá: {{ price | format_currency }}
-- Giảm giá: {{ discount | format_number(2) }}%
-- Ngày: {{ created_at | format_date('%d/%m/%Y') }}
-- Mô tả: {{ description | truncate_text(100) }}
+- Price: {{ price | format_currency }}
+- Discount: {{ discount | format_number(2) }}%
+- Date: {{ created_at | format_date('%d/%m/%Y') }}
+- Description: {{ description | truncate_text(100) }}
 ```
 
 ### Available Filters
-- `format_number(decimal_places)` - Format number with separators
-- `format_currency(currency='VND')` - Format as currency
-- `format_date(format)` - Format date string
-- `truncate_text(length)` - Truncate with ellipsis
-- `json_pretty(indent)` - Pretty print JSON
+
+* `format_number(decimal_places)` - Format number with separators
+* `format_currency(currency='VND')` - Format as currency
+* `format_date(format)` - Format date string
+* `truncate_text(length)` - Truncate with ellipsis
+* `json_pretty(indent)` - Pretty print JSON
 
 ## Authentication
 
