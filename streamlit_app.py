@@ -10,7 +10,7 @@ import streamlit as st
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core import APIAgentApp
+from core.app import APIAgentApp
 
 
 # Initialize app
@@ -66,13 +66,17 @@ if "current_agent_id" not in st.session_state:
     st.session_state.current_agent_id = None
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+# Store analysis suggestions persistently
+if "api_analysis_result" not in st.session_state:
+    st.session_state.api_analysis_result = None
 
-# Main tabs
-tab1, tab2, tab3, tab4 = st.tabs([
+# Main tabs - Now 5 tabs with Refine API as Tab 2
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📄 1. Upload API Spec",
-    "🎯 2. Define Scenarios",
-    "🚀 3. Create Agent",
-    "💬 4. Chat with Agent"
+    "🔧 2. Refine API",
+    "🎯 3. Define Scenarios",
+    "🚀 4. Create Agent",
+    "💬 5. Chat with Agent"
 ])
 
 app = get_app()
@@ -90,6 +94,8 @@ with tab1:
         if st.button("🆕 Create New Session"):
             session = run_async(app.create_session())
             st.session_state.current_session_id = session.id
+            # Clear analysis when creating new session
+            st.session_state.api_analysis_result = None
             st.success(f"Created session: {session.id[:8]}...")
         
         if st.session_state.current_session_id:
@@ -106,6 +112,33 @@ with tab1:
             selected = st.selectbox("Or select existing session:", [""] + list(session_options.keys()))
             if selected:
                 st.session_state.current_session_id = session_options[selected]
+            
+            # Delete session section
+            st.divider()
+            st.write("**🗑️ Delete Session**")
+            delete_options = {
+                f"{s.id[:8]}... - {s.api_spec.title if s.api_spec else 'No API'}": s.id
+                for s in sessions
+            }
+            session_to_delete = st.selectbox(
+                "Select session to delete:",
+                [""] + list(delete_options.keys()),
+                key="delete_session_select"
+            )
+            
+            if session_to_delete:
+                if st.button("🗑️ Delete Selected Session", type="secondary"):
+                    session_id_to_delete = delete_options[session_to_delete]
+                    result = run_async(app.delete_session(session_id_to_delete))
+                    if result:
+                        st.success(f"✅ Session deleted!")
+                        # Clear current session if it was deleted
+                        if st.session_state.current_session_id == session_id_to_delete:
+                            st.session_state.current_session_id = None
+                            st.session_state.api_analysis_result = None
+                        st.rerun()
+                    else:
+                        st.error("Failed to delete session")
     
     st.divider()
     
@@ -133,15 +166,18 @@ with tab1:
                         st.success(f"✅ Uploaded: {result.api_spec.title}")
                         st.metric("Endpoints", len(result.api_spec.endpoints))
                         
+                        # Store analysis result for Tab 2
+                        st.session_state.api_analysis_result = {
+                            "issues": result.issues,
+                            "suggestions": result.suggestions,
+                            "missing_descriptions": result.missing_descriptions
+                        }
+                        
                         if result.issues:
-                            st.warning("**Issues found:**")
-                            for issue in result.issues:
-                                st.write(f"- {issue}")
+                            st.warning(f"Found {len(result.issues)} issues. Go to **Tab 2: Refine API** to fix them.")
                         
                         if result.suggestions:
-                            st.info("**Suggestions:**")
-                            for suggestion in result.suggestions:
-                                st.write(f"- {suggestion}")
+                            st.info(f"Got {len(result.suggestions)} suggestions. Go to **Tab 2: Refine API** to review.")
                     
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
@@ -166,6 +202,16 @@ with tab1:
                         
                         st.success(f"✅ Uploaded: {result.api_spec.title}")
                         st.metric("Endpoints", len(result.api_spec.endpoints))
+                        
+                        # Store analysis result for Tab 2
+                        st.session_state.api_analysis_result = {
+                            "issues": result.issues,
+                            "suggestions": result.suggestions,
+                            "missing_descriptions": result.missing_descriptions
+                        }
+                        
+                        if result.issues or result.suggestions:
+                            st.info("Go to **Tab 2: Refine API** to review issues and suggestions.")
                     
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
@@ -329,55 +375,206 @@ components:
                         
                         st.success(f"✅ Loaded: {result.api_spec.title}")
                         st.metric("Endpoints", len(result.api_spec.endpoints))
+                        
+                        # Store analysis result for Tab 2
+                        st.session_state.api_analysis_result = {
+                            "issues": result.issues,
+                            "suggestions": result.suggestions,
+                            "missing_descriptions": result.missing_descriptions
+                        }
                     
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
         
-        # Show current API spec
+        # Show current API spec summary
         session = run_async(app.get_session(st.session_state.current_session_id))
         if session and session.api_spec:
             st.divider()
-            st.subheader("📋 Current API Spec")
+            st.subheader("📋 Current API Spec Summary")
             
             spec = session.api_spec
-            st.write(f"**Title:** {spec.title}")
-            st.write(f"**Version:** {spec.version}")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Title", spec.title)
+            with col2:
+                st.metric("Version", spec.version)
+            with col3:
+                st.metric("Endpoints", len(spec.endpoints))
+            
             st.write(f"**Base URL:** {spec.base_url or 'Not specified'}")
-            
-            with st.expander("View Endpoints"):
-                for endpoint in spec.endpoints:
-                    st.markdown(f"**{endpoint.method.value}** `{endpoint.path}`")
-                    st.write(f"  - {endpoint.summary or endpoint.description or 'No description'}")
-                    if endpoint.parameters:
-                        params = ", ".join([p.name for p in endpoint.parameters])
-                        st.write(f"  - Parameters: {params}")
-            
-            # Refine with AI
-            if app.ai_service:
-                st.divider()
-                st.subheader("🔧 Refine with AI")
-                
-                refine_msg = st.text_input(
-                    "Enter refinement instruction:",
-                    placeholder="e.g., Add descriptions to all endpoints"
-                )
-                
-                if st.button("✨ Refine") and refine_msg:
-                    with st.spinner("Refining..."):
-                        try:
-                            _, response = run_async(app.refine_api(
-                                st.session_state.current_session_id,
-                                refine_msg
-                            ))
-                            st.success("✅ Refinement applied")
-                            st.write(response)
-                        except Exception as e:
-                            st.error(f"Error: {str(e)}")
+            st.info("👉 Go to **Tab 2: Refine API** to view details and refine the API spec.")
 
 # =============================================================================
-# Tab 2: Define Scenarios
+# Tab 2: Refine API (NEW)
 # =============================================================================
 with tab2:
+    st.header("🔧 Refine API Specification")
+    
+    if not st.session_state.current_session_id:
+        st.warning("Please create a session and upload an API spec first (Tab 1).")
+    else:
+        session = run_async(app.get_session(st.session_state.current_session_id))
+        
+        if not session or not session.api_spec:
+            st.warning("Please upload an API spec first (Tab 1).")
+        else:
+            spec = session.api_spec
+            
+            # Two columns layout
+            col_left, col_right = st.columns([1, 1])
+            
+            # =================================================================
+            # LEFT COLUMN: Current API Specification
+            # =================================================================
+            with col_left:
+                st.subheader("📘 Current API Specification")
+                
+                st.write(f"**Title:** {spec.title}")
+                st.write(f"**Version:** {spec.version}")
+                st.write(f"**Description:** {spec.description or 'N/A'}")
+                st.write(f"**Base URL:** {spec.base_url or 'N/A'}")
+                
+                st.divider()
+                
+                # Show endpoints with full details
+                st.write("**Endpoints:**")
+                for endpoint in spec.endpoints:
+                    with st.expander(f"**{endpoint.method.value}** `{endpoint.path}`", expanded=False):
+                        st.write(f"**Operation ID:** {endpoint.operation_id}")
+                        st.write(f"**Summary:** {endpoint.summary or '❌ Missing'}")
+                        st.write(f"**Description:** {endpoint.description or '❌ Missing'}")
+                        
+                        if endpoint.tags:
+                            st.write(f"**Tags:** {', '.join(endpoint.tags)}")
+                        
+                        if endpoint.parameters:
+                            st.write("**Parameters:**")
+                            for p in endpoint.parameters:
+                                required_badge = "🔴 Required" if p.required else "⚪ Optional"
+                                desc = p.description or "❌ No description"
+                                st.write(f"- `{p.name}` ({p.location.value}, {p.param_type.value}) — {desc} {required_badge}")
+                        
+                        if endpoint.request_body:
+                            st.write("**Request Body:** Yes")
+                        
+                        if endpoint.responses:
+                            st.write("**Responses:**")
+                            for resp in endpoint.responses:
+                                st.write(f"- {resp.status_code}: {resp.description or 'No description'}")
+            
+            # =================================================================
+            # RIGHT COLUMN: Suggestions & Refine
+            # =================================================================
+            with col_right:
+                st.subheader("💡 Analysis & Suggestions")
+                
+                # Show stored analysis results (persists across refinements)
+                analysis = st.session_state.api_analysis_result
+                
+                if analysis:
+                    # Issues
+                    if analysis.get("issues"):
+                        with st.expander(f"⚠️ Issues Found ({len(analysis['issues'])})", expanded=True):
+                            for i, issue in enumerate(analysis["issues"], 1):
+                                st.write(f"{i}. {issue}")
+                    
+                    # Suggestions
+                    if analysis.get("suggestions"):
+                        with st.expander(f"💡 Suggestions ({len(analysis['suggestions'])})", expanded=True):
+                            for i, suggestion in enumerate(analysis["suggestions"], 1):
+                                st.write(f"{i}. {suggestion}")
+                    
+                    # Missing descriptions
+                    if analysis.get("missing_descriptions"):
+                        with st.expander(f"📝 Missing Descriptions ({len(analysis['missing_descriptions'])})", expanded=False):
+                            for item in analysis["missing_descriptions"]:
+                                st.write(f"- **{item.get('method', 'GET')}** `{item.get('path', '')}`: {item.get('suggested_description', 'N/A')}")
+                else:
+                    st.info("No analysis data. Re-upload the API spec to generate suggestions.")
+                    
+                    # Button to re-analyze
+                    if st.button("🔄 Re-analyze API"):
+                        with st.spinner("Analyzing..."):
+                            try:
+                                if app.ai_service:
+                                    analysis_result = run_async(app.ai_service.analyze_api_spec(spec))
+                                    st.session_state.api_analysis_result = {
+                                        "issues": analysis_result.get("issues", []),
+                                        "suggestions": analysis_result.get("suggestions", []),
+                                        "missing_descriptions": analysis_result.get("missing_descriptions", [])
+                                    }
+                                    st.rerun()
+                                else:
+                                    st.warning("AI service not configured.")
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+                
+                st.divider()
+                
+                # =============================================================
+                # Refine with AI
+                # =============================================================
+                st.subheader("✨ Refine with AI")
+                
+                if not app.ai_service:
+                    st.warning("Please configure Openai API key in the sidebar.")
+                else:
+                    # Show last refinement response
+                    if "last_refine_response" in st.session_state:
+                        st.success("✅ Last refinement applied:")
+                        st.write(st.session_state.last_refine_response)
+                        del st.session_state.last_refine_response
+                    
+                    # Quick refinement options
+                    st.write("**Quick Actions:**")
+                    quick_actions = [
+                        "Add descriptions to all endpoints that are missing them",
+                        "Add descriptions to all parameters that are missing them",
+                        "Improve all endpoint summaries to be more descriptive",
+                        "Standardize response descriptions"
+                    ]
+                    
+                    selected_action = st.selectbox(
+                        "Select a quick action or write custom:",
+                        ["Custom..."] + quick_actions
+                    )
+                    
+                    if selected_action == "Custom...":
+                        refine_msg = st.text_area(
+                            "Enter refinement instruction:",
+                            placeholder="e.g., Add Vietnamese descriptions to all endpoints",
+                            height=100
+                        )
+                    else:
+                        refine_msg = selected_action
+                        st.text_area("Refinement instruction:", value=refine_msg, height=100, disabled=True)
+                    
+                    if st.button("✨ Apply Refinement", type="primary") and refine_msg:
+                        with st.spinner("Refining API spec..."):
+                            try:
+                                _, response = run_async(app.refine_api(
+                                    st.session_state.current_session_id,
+                                    refine_msg
+                                ))
+                                # Save response to show after rerun
+                                st.session_state.last_refine_response = response
+                                # Note: We do NOT clear api_analysis_result here
+                                # so suggestions remain visible
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+                    
+                    # Chat history for refinement
+                    if session.chat_history:
+                        with st.expander("📜 Refinement History"):
+                            for msg in session.chat_history:
+                                role = "🧑 You" if msg.get("role") == "user" else "🤖 AI"
+                                st.write(f"**{role}:** {msg.get('content', '')[:200]}...")
+
+# =============================================================================
+# Tab 3: Define Scenarios
+# =============================================================================
+with tab3:
     st.header("Define Q&A Scenarios")
     
     if not st.session_state.current_session_id:
@@ -447,11 +644,11 @@ with tab2:
                 selected_endpoint = st.selectbox("Select endpoint:", endpoint_options)
                 
                 # Parameter mappings
+                param_mappings = []
                 if selected_endpoint:
                     selected_ep = next((e[1] for e in endpoints if e[0] == selected_endpoint), None)
                     if selected_ep and selected_ep.parameters:
                         st.write("**Parameter Mappings:**")
-                        param_mappings = []
                         for param in selected_ep.parameters:
                             entity = st.text_input(
                                 f"Entity for '{param.name}':",
@@ -486,7 +683,7 @@ with tab2:
                             api_mapping = {
                                 "endpoint_path": parts[1] if len(parts) > 1 else parts[0],
                                 "method": parts[0],
-                                "parameter_mappings": param_mappings if 'param_mappings' in dir() else []
+                                "parameter_mappings": param_mappings
                             }
                         
                         scenario_data = {
@@ -508,6 +705,7 @@ with tab2:
                             # Clear prefill
                             if "prefill_scenario" in st.session_state:
                                 del st.session_state.prefill_scenario
+                            st.rerun()
                         
                         except Exception as e:
                             st.error(f"Error: {str(e)}")
@@ -544,9 +742,9 @@ with tab2:
                                 st.rerun()
 
 # =============================================================================
-# Tab 3: Create Agent
+# Tab 4: Create Agent
 # =============================================================================
-with tab3:
+with tab4:
     st.header("Finalize & Create Agent")
     
     if not st.session_state.current_session_id:
@@ -640,9 +838,9 @@ with tab3:
                 st.info("No agents created yet.")
 
 # =============================================================================
-# Tab 4: Chat with Agent
+# Tab 5: Chat with Agent
 # =============================================================================
-with tab4:
+with tab5:
     st.header("Chat with Agent")
     
     if not st.session_state.current_agent_id:

@@ -3,15 +3,17 @@ Q&A Agent - The intelligent agent that handles user questions
 """
 from typing import Any
 
-from models import (
+from models.schemas import (
     AgentConfig,
     AgentResponse,
     ExtractedEntity,
     Scenario,
     ScenarioMatch,
 )
-from services import AIService, APIExecutor, TemplateRenderer
 
+from services.ai_service import AIService
+from services.api_executor import APIExecutor
+from services.template_renderer import TemplateRenderer
 
 class QAAgent:
     """

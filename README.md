@@ -1,31 +1,31 @@
 # API Agent
 
-🤖 **API Agent** là một AI Assistant cho phép người dùng upload API specs, chuẩn hóa, định nghĩa scenarios, và tự động tạo Q&A Agent có khả năng gọi API real-time để trả lời người dùng.
+**API Agent** là một AI Assistant cho phép người dùng upload API specs, chuẩn hóa, định nghĩa scenarios, và tự động tạo Q&A Agent có khả năng gọi API real-time để trả lời người dùng.
 
 ## Features
 
 ### 1. API Setup
-- ✅ Upload và parse OpenAPI 3.x specifications
-- ✅ Tự động phát hiện issues và missing descriptions
-- ✅ AI gợi ý cải thiện API documentation
-- ✅ Chat interface để refine API spec
+- Upload và parse OpenAPI 3.x specifications
+- Tự động phát hiện issues và missing descriptions
+- AI gợi ý cải thiện API documentation
+- Chat interface để refine API spec
 
 ### 2. Scenario Setup
-- ✅ Định nghĩa Q&A scenarios
-- ✅ AI tự động gợi ý scenarios từ API semantics
-- ✅ Mapping entities → API parameters
-- ✅ Response templates với Jinja2
+- Định nghĩa Q&A scenarios
+- AI tự động gợi ý scenarios từ API semantics
+- Mapping entities → API parameters
+- Response templates với Jinja2
 
 ### 3. Agent Creation
-- ✅ Finalize và tạo Q&A Agent
-- ✅ Hỗ trợ multiple authentication methods
-- ✅ Mock API mode cho testing
+- Finalize và tạo Q&A Agent
+- Hỗ trợ multiple authentication methods
+- Mock API mode cho testing
 
 ### 4. Q&A Chat
-- ✅ Scenario matching với AI
-- ✅ Entity extraction từ câu hỏi
-- ✅ Real-time API execution
-- ✅ Template rendering cho responses
+- Scenario matching với AI
+- Entity extraction từ câu hỏi
+- Real-time API execution
+- Template rendering cho responses
 
 ## Architecture
 
@@ -154,7 +154,7 @@ scenario = {
             {"entity_name": "product_id", "api_parameter": "productId"}
         ]
     },
-    "response_template": "📦 **{{ name }}**\n- Giá: {{ price | format_currency }}\n- Tồn kho: {{ stock }}"
+    "response_template": "**{{ name }}**\n- Giá: {{ price | format_currency }}\n- Tồn kho: {{ stock }}"
 }
 
 response = httpx.post(
@@ -191,7 +191,7 @@ print(response.json()["answer"])
 Templates use Jinja2 syntax with custom filters:
 
 ```jinja2
-📦 **{{ name }}**
+**{{ name }}**
 - Giá: {{ price | format_currency }}
 - Giảm giá: {{ discount | format_number(2) }}%
 - Ngày: {{ created_at | format_date('%d/%m/%Y') }}

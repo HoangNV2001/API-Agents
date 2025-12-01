@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import aiosqlite
 
-from models import (
+from models.schemas import (
     AgentConfig,
     APISpec,
     Scenario,

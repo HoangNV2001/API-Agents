@@ -4,7 +4,7 @@ Core Application - Main orchestration logic for API Agent
 from typing import Any
 from uuid import uuid4
 
-from models import (
+from models.schemas import (
     AgentConfig,
     AgentResponse,
     AnalysisResult,
@@ -17,14 +17,13 @@ from models import (
     Session,
     SessionStatus,
 )
-from services import (
-    AIService,
-    OpenAPIParser,
-    OpenAPIParserError,
-    SessionManager,
-    TemplateRenderer,
-)
-from agents import QAAgent, AgentManager
+
+from services.ai_service import AIService
+from services.openapi_parser import OpenAPIParser, OpenAPIParserError
+from services.session_manager import SessionManager
+from services.template_renderer import TemplateRenderer
+
+from agents.qa_agent import QAAgent, AgentManager
 
 
 class APIAgentApp:
@@ -69,6 +68,10 @@ class APIAgentApp:
     async def list_sessions(self) -> list[Session]:
         """List all sessions"""
         return await self.session_manager.list_sessions()
+    
+    async def delete_session(self, session_id: str) -> bool:
+        """Delete a session"""
+        return await self.session_manager.delete_session(session_id)
     
     # =========================================================================
     # API Setup

@@ -8,8 +8,8 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from core import APIAgentApp
-from models import (
+from core.app import APIAgentApp
+from models.schemas import (
     AnalysisResult,
     ChatWithAgentRequest,
     CreateScenarioRequest,
@@ -44,8 +44,8 @@ def get_app() -> APIAgentApp:
     """Get or create application instance"""
     global api_agent_app
     if api_agent_app is None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        api_agent_app = APIAgentApp(openai_api_key=api_key)
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_agent_app = APIAgentApp(anthropic_api_key=api_key)
     return api_agent_app
 
 
@@ -94,6 +94,16 @@ async def list_sessions():
         }
         for s in sessions
     ]
+
+
+@app.delete("/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session"""
+    app_instance = get_app()
+    result = await app_instance.delete_session(session_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"success": True, "message": f"Session {session_id} deleted"}
 
 
 # =============================================================================

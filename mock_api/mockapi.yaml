@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: Mock Weather API
+  version: "1.0.0"
+  description: Simple GET-only mock weather service
+
+servers:
+  - url: http://localhost:8067
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /weather/{city}:
+    get:
+      summary: Get weather by city
+      description: Return mock weather data for a specific city.
+      parameters:
+        - name: city
+          in: path
+          required: true
+          description: City name
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Weather info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Weather"
+
+components:
+  schemas:
+    Weather:
+      type: object
+      properties:
+        city:
+          type: string
+          example: Hanoi
+        temperature_c:
+          type: number
+          example: 27.3
+        condition:
+          type: string
+          example: Cloudy
+        humidity:
+          type: integer
+          example: 70
+        time:
+          type: string
+          format: date-time
+          example: "2025-01-01T12:00:00Z"
+      required:
+        - city
+        - temperature_c
+        - condition
+        - humidity
+        - time

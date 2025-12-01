@@ -7,7 +7,7 @@ from typing import Any
 
 from openai import OpenAI
 
-from models import (
+from models.schemas import (
     APIEndpoint,
     APIParameter,
     APISpec,
@@ -39,7 +39,7 @@ class AIService:
             max_tokens=max_tokens,
             temperature=0
         )
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
 
     # ------------------------------------------------------
 

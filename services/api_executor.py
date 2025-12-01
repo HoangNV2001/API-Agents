@@ -8,7 +8,7 @@ from urllib.parse import urljoin, urlencode
 
 import httpx
 
-from models import (
+from models.schemas import (
     APIMapping,
     APISpec,
     ExtractedEntity,
