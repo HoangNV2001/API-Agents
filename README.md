@@ -122,7 +122,7 @@ uvicorn api.routes:app --reload
 import httpx
 
 # Create session
-response = httpx.post("http://localhost:8000/sessions")
+response = httpx.post("http://localhost:8167/sessions")
 session_id = response.json()["session_id"]
 
 # Upload spec
@@ -130,7 +130,7 @@ with open("openapi.yaml") as f:
     content = f.read()
 
 response = httpx.post(
-    f"http://localhost:8000/sessions/{session_id}/api-spec",
+    f"http://localhost:8167/sessions/{session_id}/api-spec",
     data={"content": content, "format": "yaml"}
 )
 print(response.json())
@@ -158,7 +158,7 @@ scenario = {
 }
 
 response = httpx.post(
-    f"http://localhost:8000/sessions/{session_id}/scenarios",
+    f"http://localhost:8167/sessions/{session_id}/scenarios",
     json=scenario
 )
 ```
@@ -167,7 +167,7 @@ response = httpx.post(
 
 ```python
 response = httpx.post(
-    f"http://localhost:8000/sessions/{session_id}/finalize",
+    f"http://localhost:8167/sessions/{session_id}/finalize",
     json={
         "name": "E-Commerce Agent",
         "use_mock_api": True  # For testing
@@ -180,7 +180,7 @@ agent_id = response.json()["agent_id"]
 
 ```python
 response = httpx.post(
-    f"http://localhost:8000/agents/{agent_id}/chat",
+    f"http://localhost:8167/agents/{agent_id}/chat",
     json={"question": "Thông tin sản phẩm Laptop Pro?"}
 )
 print(response.json()["answer"])
